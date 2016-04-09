@@ -3,6 +3,7 @@ package goasync
 import (
 	"errors"
 	"strconv"
+	"time"
 )
 
 // Async handler
@@ -10,6 +11,7 @@ type Async struct {
 	results  map[string]*AsyncResult // task execution results
 	taskList []*Task
 	signals  chan AsyncResult
+	Timeout  time.Duration
 }
 
 // Parallel generate an async handler for parallel execution
@@ -38,6 +40,9 @@ func Auto(graph map[string]*Task) (async *Async, err error) {
 func (async *Async) Run() error {
 	async.results = make(map[string]*AsyncResult)
 	async.signals = make(chan AsyncResult)
+	if async.Timeout < time.Duration*1 {
+		async.SetTimeout(time.Minute * 10)
+	}
 	workerIndex, workerCnt := 0, 0
 	schedule := func() {
 		for _, t := range async.taskList {
@@ -49,23 +54,40 @@ func (async *Async) Run() error {
 	}
 	schedule()
 	for {
-		msg := <-async.signals
-		async.results[msg.name] = &msg
-		if msg.err != nil {
-			return msg.err
-		}
-		if len(async.results) == len(async.taskList) {
-			return nil
-		}
-		workerCnt -= 1
-		if workerCnt == 0 {
-			workerIndex += 1
-			schedule()
-			if workerCnt == 0 {
+		select {
+		case msg := <-async.signals:
+			async.results[msg.name] = &msg
+			if msg.err != nil {
+				return msg.err
+			}
+			if len(async.results) == len(async.taskList) {
 				return nil
 			}
+			workerCnt -= 1
+			if workerCnt == 0 {
+				workerIndex += 1
+				schedule()
+				if workerCnt == 0 {
+					return nil
+				}
+			}
+		case <-time.After(async.Timeout):
+			return errors.New("async task timeout!")
 		}
 	}
+}
+
+// SetTimeout of async tasks, default is 10 minutes
+func (async *Async) SetTimeout(duration time.Duration) {
+	async.Timeout = duration
+}
+
+// GetTaskNames return all task names
+func (async *Async) GetTaskNames() (names []string) {
+	for n, _ := range async.results {
+		names = append(names, n)
+	}
+	return
 }
 
 // GetResults fetch task execution results list by names
