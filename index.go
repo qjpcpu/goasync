@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Async handler
+// Async handler.
 type Async struct {
 	results map[string]*AsyncResult // task execution results
 	tasks   map[string]*Task
@@ -25,7 +25,7 @@ func (asy *Async) init(graph map[string]*Task) {
 	asy.tasks = graph
 }
 
-// Parallel generate an async handler for parallel execution
+// Parallel generate an async handler for parallel execution.
 func Parallel(functions ...TaskHandler) (async *Async, err error) {
 	if len(functions) == 0 {
 		return nil, errors.New("No task handlers found!")
@@ -39,7 +39,7 @@ func Parallel(functions ...TaskHandler) (async *Async, err error) {
 	return Auto(graph)
 }
 
-// Auto generate an async handler and auto parse task flow
+// Auto generate an async handler and auto parse task flow.
 func Auto(graph map[string]*Task) (async *Async, err error) {
 	// build DAG
 	async = &Async{}
@@ -47,7 +47,7 @@ func Auto(graph map[string]*Task) (async *Async, err error) {
 	return
 }
 
-// Run async tasks
+// Run async tasks.
 func (async *Async) Run() error {
 	// create results for task result storage
 	async.results = make(map[string]*AsyncResult)
@@ -132,12 +132,12 @@ func (async *Async) waitingTasks(ar *AsyncResult) ([]*Task, error) {
 	return waiting, nil
 }
 
-// SetTimeout of async tasks, default is 10 minutes
+// SetTimeout of async tasks, default is 10 minutes.
 func (async *Async) SetTimeout(duration time.Duration) {
 	async.Timeout = duration
 }
 
-// GetTaskNames return all task names
+// GetTaskNames return all task names.
 func (async *Async) GetTaskNames() (names []string) {
 	for n, _ := range async.results {
 		names = append(names, n)
@@ -145,7 +145,7 @@ func (async *Async) GetTaskNames() (names []string) {
 	return
 }
 
-// GetResults fetch task execution results list by names
+// GetResults fetch task execution results list by names.
 func (async *Async) GetResults(names ...string) (arr []AsyncResult) {
 	if len(names) == 0 || len(async.results) == 0 {
 		return

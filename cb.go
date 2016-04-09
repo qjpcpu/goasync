@@ -1,6 +1,6 @@
 package goasync
 
-// Cb is task callback, must be called in user's TaskHandler
+// Cb is task callback, must be called in user's TaskHandler.
 type Cb func(interface{}, error) 
 
 func (asy *Async) makeCb(taskName string) Cb {
