@@ -8,10 +8,21 @@ import (
 
 // Async handler
 type Async struct {
-	results  map[string]*AsyncResult // task execution results
-	taskList []*Task
-	signals  chan AsyncResult
-	Timeout  time.Duration
+	results map[string]*AsyncResult // task execution results
+	tasks   map[string]*Task
+	signals chan AsyncResult
+	Timeout time.Duration
+}
+
+func (asy *Async) init(graph map[string]*Task) {
+	for name, t := range graph {
+		t.name = name
+		t.done = false
+		for _, dep := range t.Dep {
+			graph[dep].out = append(graph[dep].out, name)
+		}
+	}
+	asy.tasks = graph
 }
 
 // Parallel generate an async handler for parallel execution
@@ -32,49 +43,93 @@ func Parallel(functions ...TaskHandler) (async *Async, err error) {
 func Auto(graph map[string]*Task) (async *Async, err error) {
 	// build DAG
 	async = &Async{}
-	async.dfsSort(graph)
+	async.init(graph)
 	return
 }
 
 // Run async tasks
 func (async *Async) Run() error {
+	// create results for task result storage
 	async.results = make(map[string]*AsyncResult)
-	async.signals = make(chan AsyncResult)
-	if async.Timeout < time.Duration*1 {
+	async.signals = make(chan AsyncResult, 1)
+	// set default timeout to 10 minutes
+	if async.Timeout < time.Millisecond*1 {
 		async.SetTimeout(time.Minute * 10)
 	}
-	workerIndex, workerCnt := 0, 0
-	schedule := func() {
-		for _, t := range async.taskList {
-			if t.index == workerIndex {
-				workerCnt += 1
-				go t.Handler(async.makeCb(t.name), async.GetResults(t.Dep...)...)
-			}
+	schedule := func(ar *AsyncResult) error {
+		wt, err := async.waitingTasks(ar)
+		if err != nil {
+			return err
 		}
+		// all done
+		if len(wt) == 0 {
+			return nil
+		}
+		for _, t := range wt {
+			go t.Handler(async.makeCb(t.name), async.GetResults(t.Dep...)...)
+		}
+		return nil
 	}
-	schedule()
+	if err := schedule(nil); err != nil {
+		return err
+	}
 	for {
 		select {
 		case msg := <-async.signals:
+			// store task result
 			async.results[msg.name] = &msg
+			// tag task state as done
+			async.tasks[msg.name].done = true
+			// abort when error happens
 			if msg.err != nil {
 				return msg.err
 			}
-			if len(async.results) == len(async.taskList) {
+			// goasync thinks all tasks are done if get all results
+			if len(async.tasks) == len(async.results) {
 				return nil
 			}
-			workerCnt -= 1
-			if workerCnt == 0 {
-				workerIndex += 1
-				schedule()
-				if workerCnt == 0 {
-					return nil
-				}
+			if err := schedule(&msg); err != nil {
+				return err
 			}
 		case <-time.After(async.Timeout):
 			return errors.New("async task timeout!")
 		}
 	}
+}
+
+func (async *Async) waitingTasks(ar *AsyncResult) ([]*Task, error) {
+	var waiting []*Task
+	// first schedule
+	if ar == nil {
+		for _, t := range async.tasks {
+			if len(t.Dep) == 0 {
+				waiting = append(waiting, t)
+			}
+		}
+		if len(waiting) == 0 {
+			return nil, errors.New("Can't find any task to schedule!")
+		} else {
+			return waiting, nil
+		}
+	}
+	if ar.err != nil {
+		return nil, ar.err
+	}
+	current := async.tasks[ar.name]
+	for _, down := range current.out {
+		tmp := async.tasks[down]
+		ok := true
+		for _, dep := range tmp.Dep {
+			if !async.tasks[dep].done {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			waiting = append(waiting, tmp)
+		}
+	}
+	return waiting, nil
 }
 
 // SetTimeout of async tasks, default is 10 minutes

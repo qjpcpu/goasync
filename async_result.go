@@ -20,6 +20,12 @@ func (ar AsyncResult) Name() (name string) {
 // Data return AsyncResult's data of certain task
 func (ar AsyncResult) Data(data interface{}) (err error) {
 	vfrom := reflect.ValueOf(ar.data)
+	if vfrom.Kind() == reflect.Ptr && vfrom.IsNil() {
+		return nil
+	}
+	if !vfrom.IsValid() {
+		return nil
+	}
 	vto := reflect.ValueOf(data)
 	if vto.Kind() != reflect.Ptr {
 		return errors.New("dest obj must be pointer type")

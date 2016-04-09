@@ -1,6 +1,7 @@
 package goasync
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -22,11 +23,14 @@ func TestAuto(t *testing.T) {
 			Handler: func(cb Cb, ar ...AsyncResult) {
 				var b string
 				ar[1].Data(&b)
-				t.Logf("task e got b's data:%s\n", b)
+				if b != "b string" {
+					t.Error("should be 'b string'")
+				}
 				var c MyStruct
 				ar[2].Data(&c)
-				t.Logf("task e got c's data:%+v\n", c)
-				t.Log("task e done")
+				if c.name != "from c" {
+					t.Error("should be 'from c'")
+				}
 				tbl := map[string]MyStruct{
 					"first": MyStruct{name: "inner"},
 				}
@@ -38,7 +42,9 @@ func TestAuto(t *testing.T) {
 			Handler: func(cb Cb, ar ...AsyncResult) {
 				var tbl map[string]MyStruct
 				ar[0].Data(&tbl)
-				t.Logf("task f got e's data:+%v\n", tbl)
+				if tbl["first"].name != "inner" {
+					t.Error("should be 'inner'")
+				}
 				cb(nil, nil)
 			},
 		},
@@ -68,16 +74,50 @@ func TestParallel(t *testing.T) {
 	asy, _ := Parallel(
 		func(cb Cb, ar ...AsyncResult) {
 			t.Log("aaa")
-			cb("aaa", nil)
+			cb(0, nil)
 		},
 		func(cb Cb, ar ...AsyncResult) {
 			t.Log("bbb")
-			cb("bbb", nil)
+			cb("", nil)
 		},
 	)
 	asy.Run()
 	names := asy.GetTaskNames()
-	var s string
+	var s int = 2
 	asy.GetResults(names[1])[0].Data(&s)
-	t.Log(s)
+	if s != 0 {
+		t.Error("should be zero")
+	}
+	var str string
+	asy.GetResults(names[0])[0].Data(&str)
+	if str != "" {
+		t.Error("should be empty")
+	}
+}
+func TestAutoErr(t *testing.T) {
+	graph := map[string]*Task{
+		"b": &Task{
+			Dep: []string{"a"},
+			Handler: func(cb Cb, ar ...AsyncResult) {
+				t.Log("task b")
+				cb("b string", nil)
+			},
+		},
+		"a": &Task{
+			Handler: func(cb Cb, ar ...AsyncResult) {
+				t.Log("task a")
+				d := []string{"bob", "foo"}
+				cb(d, errors.New("error happens in a"))
+			},
+		},
+	}
+	asy, _ := Auto(graph)
+	err := asy.Run()
+	if err == nil {
+		t.Error("should get an error")
+	}
+	arr := asy.GetResults("a")
+	if arr[0].err == nil {
+		t.Error("should be error")
+	}
 }
