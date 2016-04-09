@@ -6,12 +6,19 @@ import (
 	"time"
 )
 
+type ResultSet map[string]*AsyncResult
+
 // Async handler.
 type Async struct {
 	results map[string]*AsyncResult // task execution results
 	tasks   map[string]*Task
 	signals chan AsyncResult
 	Timeout time.Duration
+}
+
+// Get result by name
+func (rs ResultSet) Get(taskName string) (ar *AsyncResult) {
+	return rs[taskName]
 }
 
 func (asy *Async) init(graph map[string]*Task) {
@@ -66,7 +73,7 @@ func (async *Async) Run() error {
 			return nil
 		}
 		for _, t := range wt {
-			go t.Handler(async.makeCb(t.name), async.GetResults(t.Dep...)...)
+			go t.Handler(async.makeCb(t.name), async.GetResults(t.Dep...))
 		}
 		return nil
 	}
@@ -146,13 +153,14 @@ func (async *Async) GetTaskNames() (names []string) {
 }
 
 // GetResults fetch task execution results list by names.
-func (async *Async) GetResults(names ...string) (arr []AsyncResult) {
+func (async *Async) GetResults(names ...string) (rs ResultSet) {
+	rs = make(ResultSet)
 	if len(names) == 0 || len(async.results) == 0 {
 		return
 	}
 	for _, name := range names {
 		if val, ok := async.results[name]; ok {
-			arr = append(arr, *val)
+			rs[name] = val
 		}
 	}
 	return

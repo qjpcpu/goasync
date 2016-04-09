@@ -18,7 +18,7 @@ import "github.com/qjpcpu/goasync"
 
 Run multiple tasks(`go routines`) parallel and wait them all.
 
-And the `TaskHandler` must match the signature `func(Cb, ...AsyncResult)`.
+And the `TaskHandler` must match the signature `func(Cb, ResultSet)`.
 
 The parameter `Cb` is a callback function, which must be get called. If no error happens, the `Cb` should be called like `cb(data,nil)`. the `data` can be passed out.
 
@@ -35,13 +35,13 @@ import (
 
 func main() {
 	async, err := goasync.Parallel(
-		func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+		func(cb goasync.Cb, ar goasync.ResultSet) {
 			log.Println("task 0 started, sleep 5 seconds...")
 			time.Sleep(time.Second * 5)
 			log.Println("task 0 done")
 			cb(nil, nil)
 		},
-		func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+		func(cb goasync.Cb, ar goasync.ResultSet) {
 			log.Println("task 1 started, calculate 2 * 3 = ?")
 			time.Sleep(time.Second * 2)
 			res := 2 * 3
@@ -58,7 +58,7 @@ func main() {
 	}
 	var data int
     // fetch results by task index, note: the index type is string not integer
-	async.GetResults("1")[0].Data(&data)
+	async.GetResults("1").Get("1").Data(&data)
 	log.Printf("get task 1 result: 2 * 3 = %v\n", data)
 }
 ```
@@ -76,7 +76,7 @@ The output would be
 
 #### `func Auto(flows map[string]*Task) (async *Async, err error)`
 
-Consider this scenario: you want download an image first, then your robot can auto resize the image and store it to certain folder, and after the image downloaded, you can open your phone book and call for lunch. After all, you can go off work.
+Consider this scenario: you want download an image first, then your robot can auto resize the image and store it to certain folder, and after the image downloaded, you can open your phone book and call for launch. After all, you can go off work.
 
 ```go
 package main
@@ -90,7 +90,7 @@ import (
 func main() {
 	flows := map[string]*goasync.Task{
 		"download-image": &goasync.Task{
-			Handler: func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				url := "http://somewhere.com/flower.jpeg"
 				log.Printf("Downloading %s ...\n", url)
 				time.Sleep(time.Second * 2)
@@ -99,9 +99,9 @@ func main() {
 		},
 		"resize-image": &goasync.Task{
 			Dep: []string{"download-image"},
-			Handler: func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				var filename string
-				ar[0].Data(&filename)
+				ar.Get("download-image").Data(&filename)
 				log.Printf("The robot now can load %s & resize it...\n", filename)
 				time.Sleep(time.Second * 3)
 				fullpath := "/my-folder/" + filename
@@ -110,9 +110,9 @@ func main() {
 		},
 		"save-image": &goasync.Task{
 			Dep: []string{"resize-image"},
-			Handler: func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				var fullpath string
-				ar[0].Data(&fullpath)
+				ar.Get("resize-image").Data(&fullpath)
 				time.Sleep(time.Second * 2)
 				log.Printf("Save image to %s...\n", fullpath)
 				time.Sleep(time.Second * 1)
@@ -121,7 +121,7 @@ func main() {
 		},
 		"search-phonebook": &goasync.Task{
 			Dep: []string{"download-image"},
-			Handler: func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				log.Println("Find phonebook can look for the phone number of KFC...")
 				time.Sleep(time.Second * 3)
 				number := "4008-517-517"
@@ -131,10 +131,10 @@ func main() {
 		},
 		"make-order": &goasync.Task{
 			Dep: []string{"search-phonebook"},
-			Handler: func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				var number string
-				ar[0].Data(&number)
-				log.Printf("Call %s and order my lunch...\n", number)
+				ar.Get("search-phonebook").Data(&number)
+				log.Printf("Call %s and order my launch...\n", number)
 				time.Sleep(time.Second * 1)
 				log.Println("Order OK, enjoy lunch...")
 				cb(nil, nil)
@@ -142,7 +142,7 @@ func main() {
 		},
 		"off-work": &goasync.Task{
 			Dep: []string{"make-order", "save-image"},
-			Handler: func(cb goasync.Cb, ar ...goasync.AsyncResult) {
+			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				time.Sleep(time.Second * 1)
 				log.Println("Save image done & finish my lunch, off work ^_^")
 				cb(nil, nil)

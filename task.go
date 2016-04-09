@@ -1,7 +1,7 @@
 package goasync
 
 // TaskHandler is user behave method.
-type TaskHandler func(Cb, ...AsyncResult)
+type TaskHandler func(Cb, ResultSet)
 
 type Task struct {
 	Dep     []string
