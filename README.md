@@ -58,7 +58,7 @@ func main() {
 	}
 	var data int
     // fetch results by task index, note: the index type is string not integer
-	async.GetResults("1").Get("1").Data(&data)
+	async.GetResult("1").Data(&data)
 	log.Printf("get task 1 result: 2 * 3 = %v\n", data)
 }
 ```

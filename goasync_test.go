@@ -84,12 +84,12 @@ func TestParallel(t *testing.T) {
 	asy.Run()
 	names := asy.GetTaskNames()
 	var s int = 2
-	asy.GetResults(names[1])[names[1]].Data(&s)
+	asy.GetResult(names[1]).Data(&s)
 	if s != 0 {
 		t.Error("should be zero")
 	}
 	var str string
-	asy.GetResults(names[0])[names[0]].Data(&str)
+	asy.GetResult(names[0]).Data(&str)
 	if str != "" {
 		t.Error("should be empty")
 	}
@@ -116,8 +116,8 @@ func TestAutoErr(t *testing.T) {
 	if err == nil {
 		t.Error("should get an error")
 	}
-	arr := asy.GetResults("a")
-	if arr["a"].err == nil {
+	ar := asy.GetResult("a")
+	if ar.err == nil {
 		t.Error("should be error")
 	}
 }

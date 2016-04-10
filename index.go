@@ -165,3 +165,11 @@ func (async *Async) GetResults(names ...string) (rs ResultSet) {
 	}
 	return
 }
+
+// GetResult fetch task execution result by name.
+func (async *Async) GetResult(name string) (ar *AsyncResult) {
+	if val, ok := async.results[name]; ok {
+		ar = val
+	}
+	return
+}
