@@ -1,30 +1,28 @@
 goasync
 =========================
 
-[中文](https://github.com/qjpcpu/goasync/blob/master/README_zh.md)
+[English](https://github.com/qjpcpu/goasync/blob/master/README.md)
 
-`goasync` is inspired by the cool Node.js lib [async](https://github.com/caolan/async), I hope it makes multiple go routines programming easier.
+`goasync`受node.js的一个著名库[async](https://github.com/caolan/async)启发而来，旨在解决golang并发编程的共性问题:goroutine的使用。
 
 ### Install
 
 ```
-# add goasync as your dependency
+# 安装依赖
 go get github.com/qjpcpu/goasync
-# add goasync to your go source code
+# 引用库
 import "github.com/qjpcpu/goasync"
 ```
 
-### Usage
+### 使用举例
+
+比如，有时我们需要并行执行多个任务，那么我们可能就需要开启多个go routine来处理，当所有任务完成时，检查并处理执行结果，这种场景很常见，实现也很简单。既然这样，其实就说明这种模式可以归纳提炼，这就是`Parallel`接口解决的问题。
 
 #### `func Parallel(functions ...TaskHandler) (async *Async, err error)`
 
-Run multiple tasks(`go routines`) parallel and wait them all.
+该函数接受不定参数`TaskHandler`，该参数其实是一个函数，其函数签名为`func(Cb, ResultSet)`。
 
-And the `TaskHandler` must match the signature `func(Cb, ResultSet)`.
-
-The parameter `Cb` is a callback function, which must be get called. If no error happens, the `Cb` should be called like `cb(data,nil)`. the `data` can be passed out.
-
-The others parameters are upstream tasks results.
+第一个参数`Cb`为回调函数，必须在传入的用户函数中调用; 第二个参数`ResultSet`是上游任务执行结果,这`Parallel`场景下一般不需要用到。
 
 ```go
 package main
@@ -65,7 +63,7 @@ func main() {
 }
 ```
 
-The output would be
+输出结果为:
 
 ```
 2016/04/09 22:04:02 task 0 started, sleep 5 seconds...
@@ -78,7 +76,11 @@ The output would be
 
 #### `func Auto(flows map[string]*Task) (async *Async, err error)`
 
-Consider this scenario: you want download an image first, then your robot can auto resize the image and store it to certain folder, and after the image downloaded, you can open your phone book and call for launch. After all, you can go off work.
+而`Auto`接口对应的场景就更多了:
+
+比如，你希望从网上搜索下载一张图片，然后交给你的机器人去修剪图片再保存到本地磁盘的某个文件夹，而当你下载完图片后，不需要等待机器人做图片处理就可以打开你的电话薄到肯德基给自己订份外卖吃;当所有的事情完成后，就可以下班了。
+
+这其实就是解决拓扑排序的相关问题，然而每次去为这样的事情写代码也挺重复的，不外乎就是解决多个go routine的执行顺序及相互通信。 使用`Auto`接口，可以让你仅定义任务的依赖关系及实现逻辑，协同的事情就交给`goasync`吧。
 
 ```go
 package main
@@ -170,3 +172,7 @@ The output should be:
 2016/04/09 22:35:09 [off-work]          Save image done & finish my launch, off work ^_^
 2016/04/09 22:35:09 All tasks done.
 ```
+
+### 其他
+
+欢迎`pull request`。
