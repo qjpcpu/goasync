@@ -92,7 +92,7 @@ func main() {
 		"download-image": &goasync.Task{
 			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				url := "http://somewhere.com/flower.jpeg"
-				log.Printf("Downloading %s ...\n", url)
+				log.Printf("[download-image]\tDownloading %s ...\n", url)
 				time.Sleep(time.Second * 2)
 				cb("flower.jpeg", nil)
 			},
@@ -102,7 +102,7 @@ func main() {
 			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				var filename string
 				ar.Get("download-image").Data(&filename)
-				log.Printf("The robot now can load %s & resize it...\n", filename)
+				log.Printf("[resize-image]\tThe robot now can load %s & resize it...\n", filename)
 				time.Sleep(time.Second * 3)
 				fullpath := "/my-folder/" + filename
 				cb(fullpath, nil)
@@ -114,7 +114,7 @@ func main() {
 				var fullpath string
 				ar.Get("resize-image").Data(&fullpath)
 				time.Sleep(time.Second * 2)
-				log.Printf("Save image to %s...\n", fullpath)
+				log.Printf("[save-image]\tSave image to %s...\n", fullpath)
 				time.Sleep(time.Second * 1)
 				cb(nil, nil)
 			},
@@ -122,10 +122,10 @@ func main() {
 		"search-phonebook": &goasync.Task{
 			Dep: []string{"download-image"},
 			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
-				log.Println("Find phonebook can look for the phone number of KFC...")
+				log.Println("[search-phonebook]\tFind phonebook can look for the phone number of KFC...")
 				time.Sleep(time.Second * 3)
 				number := "4008-517-517"
-				log.Printf("Got KFC number:%s\n", number)
+				log.Printf("[search-phonebook]\tGot KFC number:%s\n", number)
 				cb(number, nil)
 			},
 		},
@@ -134,9 +134,9 @@ func main() {
 			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				var number string
 				ar.Get("search-phonebook").Data(&number)
-				log.Printf("Call %s and order my launch...\n", number)
+				log.Printf("[make-order]\tCall %s and order my launch...\n", number)
 				time.Sleep(time.Second * 1)
-				log.Println("Order OK, enjoy lunch...")
+				log.Println("[make-order]\tOrder OK, enjoy launch...")
 				cb(nil, nil)
 			},
 		},
@@ -144,7 +144,7 @@ func main() {
 			Dep: []string{"make-order", "save-image"},
 			Handler: func(cb goasync.Cb, ar goasync.ResultSet) {
 				time.Sleep(time.Second * 1)
-				log.Println("Save image done & finish my lunch, off work ^_^")
+				log.Println("[off-work]\tSave image done & finish my launch, off work ^_^")
 				cb(nil, nil)
 			},
 		},
@@ -162,7 +162,7 @@ The output should be:
 2016/04/09 22:41:22 The robot now can load flower.jpeg & resize it...
 2016/04/09 22:41:22 Find phonebook can look for the phone number of KFC...
 2016/04/09 22:41:25 Got KFC number:4008-517-517
-2016/04/09 22:41:25 Call 4008-517-517 and order my lunch...
+2016/04/09 22:41:25 Call 4008-517-517 and order my launch...
 2016/04/09 22:41:26 Order OK, enjoy lunch...
 2016/04/09 22:41:27 Save image to /my-folder/flower.jpeg...
 2016/04/09 22:41:29 Save image done & finish my lunch, off work ^_^

@@ -2,6 +2,7 @@ package goasync
 
 import (
 	"errors"
+	"log"
 	"strconv"
 	"time"
 )
@@ -14,6 +15,7 @@ type Async struct {
 	tasks   map[string]*Task
 	signals chan AsyncResult
 	Timeout time.Duration
+	Debug   bool // print schedule info
 }
 
 // Get result by name
@@ -72,6 +74,13 @@ func (async *Async) Run() error {
 		if len(wt) == 0 {
 			return nil
 		}
+		if async.Debug {
+			info := "[goasync]\tSchedule tasks: "
+			for _, t := range wt {
+				info += t.name + " "
+			}
+			log.Println(info)
+		}
 		for _, t := range wt {
 			go t.Handler(async.makeCb(t.name), async.GetResults(t.Dep...))
 		}
@@ -89,10 +98,19 @@ func (async *Async) Run() error {
 			async.tasks[msg.name].done = true
 			// abort when error happens
 			if msg.err != nil {
+				if async.Debug {
+					log.Printf("[goasync]\tError ocurrs in %s,exit!\n", msg.name)
+				}
 				return msg.err
+			}
+			if async.Debug {
+				log.Printf("[goasync]\t%s finished.\n", msg.name)
 			}
 			// goasync thinks all tasks are done if get all results
 			if len(async.tasks) == len(async.results) {
+				if async.Debug {
+					log.Printf("[goasync]\tAll goasync tasks done.\n")
+				}
 				return nil
 			}
 			if err := schedule(&msg); err != nil {
