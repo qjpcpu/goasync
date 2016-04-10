@@ -19,6 +19,9 @@ func (ar AsyncResult) Name() (name string) {
 
 // Data return AsyncResult's data of certain task.
 func (ar AsyncResult) Data(data interface{}) (err error) {
+	if ar.err != nil {
+		return ar.err
+	}
 	vfrom := reflect.ValueOf(ar.data)
 	if vfrom.Kind() == reflect.Ptr && vfrom.IsNil() {
 		return nil
