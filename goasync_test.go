@@ -81,15 +81,17 @@ func TestParallel(t *testing.T) {
 			cb("", nil)
 		},
 	)
-	asy.Run()
-	names := asy.GetTaskNames()
-	var s int = 2
-	asy.GetResult(names[1]).Data(&s)
-	if s != 0 {
-		t.Error("should be zero")
+	err := asy.Run()
+	if err != nil {
+		t.Error("should no error")
 	}
-	var str string
-	asy.GetResult(names[0]).Data(&str)
+	var s int = 2
+	err = asy.GetResult("1").Data(&s)
+	if err == nil {
+		t.Error("should an error when get data")
+	}
+	var str string = "xyz"
+	asy.GetResult("1").Data(&str)
 	if str != "" {
 		t.Error("should be empty")
 	}
@@ -119,5 +121,89 @@ func TestAutoErr(t *testing.T) {
 	ar := asy.GetResult("a")
 	if ar.err == nil {
 		t.Error("should be error")
+	}
+}
+
+func TestAutoSequence(t *testing.T) {
+	graph := map[string]*Task{
+		"a": &Task{
+			Handler: func(cb Cb, ar ResultSet) {
+				cb(1, nil)
+			},
+		},
+		"b": &Task{
+			Handler: func(cb Cb, ar ResultSet) {
+				cb(2, nil)
+			},
+		},
+		"c": &Task{
+			Dep: []string{"a", "b"},
+			Handler: func(cb Cb, ar ResultSet) {
+				var a int
+				ar.Get("a").Data(&a)
+				var b int
+				ar.Get("b").Data(&b)
+				if a != 1 {
+					t.Error("task a result should be 1")
+				}
+				if b != 2 {
+					t.Error("task b result should be 2")
+				}
+				cb(a+b, nil)
+			},
+		},
+		"d": &Task{
+			Dep: []string{"c"},
+			Handler: func(cb Cb, ar ResultSet) {
+				var c int
+				ar.Get("c").Data(&c)
+				if c != 3 {
+					t.Error("task c result should be 3")
+				}
+				cb(nil, nil)
+			},
+		},
+		"e": &Task{
+			Dep: []string{"c"},
+			Handler: func(cb Cb, ar ResultSet) {
+				var c int
+				ar.Get("c").Data(&c)
+				if c != 3 {
+					t.Error("task c result should be 3")
+				}
+				cb(nil, nil)
+			},
+		},
+	}
+	asy, _ := Auto(graph)
+	err := asy.Run()
+	if err != nil {
+		t.Error("should get no error")
+	}
+}
+
+func TestAutoErr1(t *testing.T) {
+	graph := map[string]*Task{
+		"a": &Task{
+			Handler: func(cb Cb, ar ResultSet) {
+				cb("text", nil)
+			},
+		},
+		"b": &Task{
+			Dep: []string{"a"},
+			Handler: func(cb Cb, ar ResultSet) {
+				cb(nil, nil)
+			},
+		},
+	}
+	asy, _ := Auto(graph)
+	err := asy.Run()
+	if err != nil {
+		t.Error("should get no error")
+	}
+	ar := asy.GetResult("a")
+	var g int
+	if err = ar.Data(g); err == nil {
+		t.Error("should be an error")
 	}
 }

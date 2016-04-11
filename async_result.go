@@ -2,6 +2,7 @@ package goasync
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -19,6 +20,11 @@ func (ar AsyncResult) Name() (name string) {
 
 // Data return AsyncResult's data of certain task.
 func (ar AsyncResult) Data(data interface{}) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("%v", r))
+		}
+	}()
 	if ar.err != nil {
 		return ar.err
 	}

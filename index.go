@@ -92,6 +92,9 @@ func (async *Async) Run() error {
 	for {
 		select {
 		case msg := <-async.signals:
+			if async.Debug {
+				log.Printf("[goasync]\t Got [%+v] from %s\n", msg, msg.name)
+			}
 			if _, exists := async.results[msg.name]; exists {
 				if async.Debug {
 					log.Printf("[goasync]\tCallback invoked multiple times in %s,exit!\n", msg.name)
