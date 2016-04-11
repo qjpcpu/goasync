@@ -92,6 +92,12 @@ func (async *Async) Run() error {
 	for {
 		select {
 		case msg := <-async.signals:
+			if _, exists := async.results[msg.name]; exists {
+				if async.Debug {
+					log.Printf("[goasync]\tCallback invoked multiple times in %s,exit!\n", msg.name)
+				}
+				return errors.New("Callback invoked multiple times!")
+			}
 			// store task result
 			async.results[msg.name] = &msg
 			// tag task state as done
