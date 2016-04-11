@@ -41,7 +41,11 @@ func TestAuto(t *testing.T) {
 			Dep: []string{"e"},
 			Handler: func(cb Cb, ar ResultSet) {
 				var tbl map[string]MyStruct
-				ar["e"].Data(&tbl)
+				err := ar["e"].Data(tbl)
+				if err == nil {
+					t.Error("should be error")
+				}
+				err = ar["e"].Data(&tbl)
 				if tbl["first"].name != "inner" {
 					t.Error("should be 'inner'")
 				}
@@ -52,7 +56,14 @@ func TestAuto(t *testing.T) {
 			Dep: []string{"a"},
 			Handler: func(cb Cb, ar ResultSet) {
 				var data []string
+				err := ar["a"].Data(data)
+				if err == nil {
+					t.Error("should be err")
+				}
 				ar["a"].Data(&data)
+				if len(data) != 2 || data[0] != "bob" {
+					t.Error("error in fetch a's data")
+				}
 				t.Log("task c get a's data:", data)
 				ms := &MyStruct{name: "from c"}
 				cb(ms, nil)
