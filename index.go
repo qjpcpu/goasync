@@ -37,7 +37,7 @@ func (asy *Async) init(graph map[string]*Task) {
 // Parallel generate an async handler for parallel execution.
 func Parallel(functions ...TaskHandler) (async *Async, err error) {
 	if len(functions) == 0 {
-		return nil, errors.New("No task handlers found!")
+		return nil, errors.New("goasync: no task handlers found!")
 	}
 	graph := make(map[string]*Task)
 	for i, th := range functions {
@@ -99,7 +99,7 @@ func (async *Async) Run() error {
 				if async.Debug {
 					log.Printf("[goasync]\tCallback invoked multiple times in %s,exit!\n", msg.name)
 				}
-				return errors.New("Callback invoked multiple times!")
+				return errors.New("goasync: callback invoked multiple times!")
 			}
 			// store task result
 			async.results[msg.name] = &msg
@@ -126,7 +126,7 @@ func (async *Async) Run() error {
 				return err
 			}
 		case <-time.After(async.Timeout):
-			return errors.New("async task timeout!")
+			return errors.New("goasync: task timeout!")
 		}
 	}
 }
@@ -141,7 +141,7 @@ func (async *Async) waitingTasks(ar *AsyncResult) ([]*Task, error) {
 			}
 		}
 		if len(waiting) == 0 {
-			return nil, errors.New("Can't find any task to schedule!")
+			return nil, errors.New("goasync: can't find any task to schedule!")
 		} else {
 			return waiting, nil
 		}
