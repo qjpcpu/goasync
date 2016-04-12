@@ -218,3 +218,47 @@ func TestAutoErr1(t *testing.T) {
 		t.Error("should be an error")
 	}
 }
+
+func TestCircleDep(t *testing.T) {
+	graph := map[string]*Task{
+		"a": &Task{
+			Handler: func(cb Cb, ar ResultSet) {
+				cb("text", nil)
+			},
+		},
+		"b": &Task{
+			Dep: []string{"a", "e"},
+			Handler: func(cb Cb, ar ResultSet) {
+				cb("text", nil)
+			},
+		},
+		"c": &Task{
+			Dep: []string{"b"},
+			Handler: func(cb Cb, ar ResultSet) {
+				cb(nil, nil)
+			},
+		},
+		"d": &Task{
+			Dep: []string{"c"},
+			Handler: func(cb Cb, ar ResultSet) {
+				cb(nil, nil)
+			},
+		},
+		"e": &Task{
+			Dep: []string{"d"},
+			Handler: func(cb Cb, ar ResultSet) {
+				cb(nil, nil)
+			},
+		},
+		"f": &Task{
+			Dep: []string{"d"},
+			Handler: func(cb Cb, ar ResultSet) {
+				cb(nil, nil)
+			},
+		},
+	}
+	_, err := Auto(graph)
+	if err == nil {
+		t.Error("should circle err")
+	}
+}

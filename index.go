@@ -2,6 +2,7 @@ package goasync
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -53,6 +54,9 @@ func Auto(graph map[string]*Task) (async *Async, err error) {
 	// build DAG
 	async = &Async{}
 	async.init(graph)
+	if err = dfsScan(graph); err != nil {
+		return
+	}
 	return
 }
 
@@ -160,6 +164,9 @@ func (async *Async) waitingTasks(ar *AsyncResult) ([]*Task, error) {
 			}
 		}
 		if ok {
+			if tmp.done {
+				return nil, errors.New(fmt.Sprintf("goasync: fail to schedule task[%s], maybe there's circle dependency", tmp.name))
+			}
 			waiting = append(waiting, tmp)
 		}
 	}
