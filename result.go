@@ -6,20 +6,20 @@ import (
 	"reflect"
 )
 
-// AsyncResult store certain task's execution result.
-type AsyncResult struct {
+// Result store certain task's execution result.
+type Result struct {
 	name string
 	err  error
 	data interface{}
 }
 
-// Name return AsyncResult's name.
-func (ar AsyncResult) Name() (name string) {
+// Name return Result's name.
+func (ar Result) Name() (name string) {
 	return ar.name
 }
 
-// Data return AsyncResult's data of certain task.
-func (ar AsyncResult) Data(data interface{}) (err error) {
+// Data return Result's data of certain task.
+func (ar Result) Data(data interface{}) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprintf("%v", r))

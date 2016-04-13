@@ -5,7 +5,7 @@ type Cb func(interface{}, error)
 
 func (asy *Async) makeCb(taskName string) Cb {
 	return func(data interface{}, err error) {
-		ar := AsyncResult{
+		ar := Result{
 			name: taskName,
 		}
 		if err != nil {

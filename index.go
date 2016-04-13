@@ -8,19 +8,19 @@ import (
 	"time"
 )
 
-type ResultSet map[string]*AsyncResult
+type ResultSet map[string]*Result
 
 // Async handler.
 type Async struct {
-	results map[string]*AsyncResult // task execution results
+	results map[string]*Result // task execution results
 	tasks   map[string]*Task
-	signals chan AsyncResult
+	signals chan Result
 	Timeout time.Duration
 	Debug   bool // print schedule info
 }
 
 // Get result by name
-func (rs ResultSet) Get(taskName string) (ar *AsyncResult) {
+func (rs ResultSet) Get(taskName string) (ar *Result) {
 	return rs[taskName]
 }
 
@@ -63,13 +63,13 @@ func Auto(graph map[string]*Task) (async *Async, err error) {
 // Run async tasks.
 func (async *Async) Run() error {
 	// create results for task result storage
-	async.results = make(map[string]*AsyncResult)
-	async.signals = make(chan AsyncResult, 1)
+	async.results = make(map[string]*Result)
+	async.signals = make(chan Result, 1)
 	// set default timeout to 10 minutes
 	if async.Timeout < time.Millisecond*1 {
 		async.SetTimeout(time.Minute * 10)
 	}
-	schedule := func(ar *AsyncResult) error {
+	schedule := func(ar *Result) error {
 		wt, err := async.waitingTasks(ar)
 		if err != nil {
 			return err
@@ -135,7 +135,7 @@ func (async *Async) Run() error {
 	}
 }
 
-func (async *Async) waitingTasks(ar *AsyncResult) ([]*Task, error) {
+func (async *Async) waitingTasks(ar *Result) ([]*Task, error) {
 	var waiting []*Task
 	// first schedule
 	if ar == nil {
@@ -201,7 +201,7 @@ func (async *Async) GetResults(names ...string) (rs ResultSet) {
 }
 
 // GetResult fetch task execution result by name.
-func (async *Async) GetResult(name string) (ar *AsyncResult) {
+func (async *Async) GetResult(name string) (ar *Result) {
 	if val, ok := async.results[name]; ok {
 		ar = val
 	}
